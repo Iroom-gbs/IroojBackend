@@ -43,10 +43,12 @@ namespace IroojBackend.Controllers
             return Ok("Finished");
         }
         
+        [HttpGet]
         [Route("/judgeresult")]
         public IActionResult GetResult(long judgeNumber) 
             => Ok(DBModel.GetGradData(judgeNumber));
 
+        [HttpGet]
         [Route("/problem")]
         public IActionResult GetProblemData(long problemNumber)
             => Ok(DBModel.GetProblemData(problemNumber));
