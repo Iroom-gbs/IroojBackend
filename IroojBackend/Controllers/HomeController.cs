@@ -13,17 +13,15 @@ namespace IroojBackend.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-
         public HomeController(ILogger<HomeController> logger)
         {
             _logger = logger;
         }
-
         public IActionResult Index()
         {
             return View();
         }
-
+        
         [HttpGet]
         [Route("/grad")]
         public IActionResult Grad(string language, string code, long questionNumber)
@@ -44,5 +42,15 @@ namespace IroojBackend.Controllers
             SocketMain.socket.WriteGradingInfo(timeLimit, memoryLimit, testCaseCount, language, code);
             return Ok("Finished");
         }
+        
+        [HttpGet]
+        [Route("/judgeresult")]
+        public IActionResult GetResult(long judgeNumber) 
+            => Ok(DBModel.GetGradData(judgeNumber));
+
+        [HttpGet]
+        [Route("/problem")]
+        public IActionResult GetProblemData(long problemNumber)
+            => Ok(DBModel.GetProblemData(problemNumber));
     }
 }

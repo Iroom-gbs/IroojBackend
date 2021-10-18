@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using IroojBackend.Models;
 
 namespace IroojBackend.socket
 {
@@ -12,6 +13,7 @@ namespace IroojBackend.socket
     {
         public static GradingSocket socket;
         private static List<StreamWriter> clients = new();
+        public static object lockSocketIO;
         public static void InitializeSocket()
         {
             socket = new GradingSocket();
@@ -24,13 +26,16 @@ namespace IroojBackend.socket
                     if (dat == string.Empty) continue;
                     Console.WriteLine(dat);
                     var d = Encoding.UTF8.GetBytes(dat);
-                    clients.ForEach(x =>
+                    lock (lockSocketIO)
                     {
-                        x.WriteLine(d.Length);
-                        x.Flush();
-                        x.BaseStream.Write(d);
-                        x.Flush();
-                    });
+                        clients.ForEach(x =>
+                        {
+                            x.WriteLine(d.Length);
+                            x.Flush();
+                            x.BaseStream.Write(d);
+                            x.Flush();
+                        });
+                    }
                 }
             }
 
@@ -48,16 +53,26 @@ namespace IroojBackend.socket
                     var clientSocket = client.AcceptSocket();
                     socket.WriteGradingInfo(1000, 512 * 1024, 2, "CPP", "#include <iostream>\nusing namespace std;\nsigned main(){int a, b;cin>>a>>b;cout<<a+b;return 0;}");
                     if (!clientSocket.Connected) continue;
-                    var stream = new StreamWriter(new NetworkStream(clientSocket)); 
-                    clients.Add(stream);
+                    var stream = new StreamWriter(new NetworkStream(clientSocket));
+
+                    lock (lockSocketIO)
+                    {
+                        var d = DBModel.GetCurrentGradInfo();
+                        stream.WriteLine(d.Length);
+                        stream.WriteLine(d);
+                        stream.Flush();
+
+                        clients.Add(stream);
+                    }
+
                     new Thread(() =>
                     {
                         while (true)
-                        {
                             if (!IsSocketConnected(clientSocket)) break;
+                        lock (lockSocketIO)
+                        {
+                            clients.Remove(stream);
                         }
-
-                        clients.Remove(stream);
                     }).Start();
                 }
             }
